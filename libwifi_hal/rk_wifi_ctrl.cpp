@@ -27,7 +27,7 @@
 #include <android-base/logging.h>
 #include <cutils/misc.h>
 #include <cutils/properties.h>
-#include <private/android_filesystem_config.h>
+//#include <private/android_filesystem_config.h>
 
 static int identify_sucess = -1;
 static char recoginze_wifi_chip[64];
