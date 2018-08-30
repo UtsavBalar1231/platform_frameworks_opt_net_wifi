@@ -30,6 +30,7 @@ import android.net.wifi.WifiScanner;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.PowerManager;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.Settings;
@@ -92,6 +93,7 @@ public class SoftApManager implements ActiveModeManager {
 
     private int mNumAssociatedStations = 0;
     private boolean mTimeoutEnabled = false;
+    private PowerManager.WakeLock mSoftApWakeLock;
 
     /**
      * Listener for soft AP events.
@@ -134,6 +136,8 @@ public class SoftApManager implements ActiveModeManager {
         }
         mWifiMetrics = wifiMetrics;
         mStateMachine = new SoftApStateMachine(looper);
+	PowerManager powerManager = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
+	mSoftApWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SoftAp");
     }
 
     /**
@@ -260,8 +264,11 @@ public class SoftApManager implements ActiveModeManager {
             Log.e(TAG, "Soft AP start failed");
             return ERROR_GENERIC;
         }
-        Log.d(TAG, "Soft AP is started");
-
+	if(!mSoftApWakeLock.isHeld()) {
+		Log.d(TAG,"---- mSoftApWakeLock.acquire ----");
+		mSoftApWakeLock.acquire();
+	}
+	Log.d(TAG, "Soft AP is started");
         return SUCCESS;
     }
 
@@ -270,6 +277,10 @@ public class SoftApManager implements ActiveModeManager {
      */
     private void stopSoftAp() {
         mWifiNative.teardownInterface(mApInterfaceName);
+	if(mSoftApWakeLock.isHeld()) {
+		Log.d(TAG,"---- mSoftApWakeLock.release ----");
+		mSoftApWakeLock.release();
+	}
         Log.d(TAG, "Soft AP is stopped");
     }
 
