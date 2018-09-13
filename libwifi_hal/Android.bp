@@ -33,3 +33,19 @@ cc_library_shared {
     header_libs: ["libcutils_headers"],
     srcs: ["rk_wifi_ctrl.cpp"],
 }
+
+cc_library_headers {
+    name: "librkwifi-ctrl_headers",
+    export_include_dirs: [
+        "include",
+    ],
+}
+
+vendor_public_library {
+    name: "librkwifi-ctrl",
+    symbol_file: "librkwifi-ctrl.map.txt",
+    export_public_headers: [
+        "librkwifi-ctrl_headers",
+    ],
+}
+
