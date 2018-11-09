@@ -95,6 +95,8 @@ public class SoftApManager implements ActiveModeManager {
     private boolean mTimeoutEnabled = false;
     private PowerManager.WakeLock mSoftApWakeLock;
 
+    private final SarManager mSarManager;
+
     /**
      * Listener for soft AP events.
      */
@@ -120,7 +122,8 @@ public class SoftApManager implements ActiveModeManager {
                          @NonNull WifiManager.SoftApCallback callback,
                          @NonNull WifiApConfigStore wifiApConfigStore,
                          @NonNull SoftApModeConfiguration apConfig,
-                         @NonNull WifiMetrics wifiMetrics) {
+                         @NonNull WifiMetrics wifiMetrics,
+                         @NonNull SarManager sarManager) {
         mContext = context;
         mFrameworkFacade = framework;
         mWifiNative = wifiNative;
@@ -135,6 +138,7 @@ public class SoftApManager implements ActiveModeManager {
             mApConfig = config;
         }
         mWifiMetrics = wifiMetrics;
+        mSarManager = sarManager;
         mStateMachine = new SoftApStateMachine(looper);
 	PowerManager powerManager = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
 	mSoftApWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SoftAp");
@@ -232,6 +236,26 @@ public class SoftApManager implements ActiveModeManager {
             Log.e(TAG, "Unable to start soft AP without valid configuration");
             return ERROR_GENERIC;
         }
+        // Setup country code
+        if (TextUtils.isEmpty(mCountryCode)) {
+            if (config.apBand == WifiConfiguration.AP_BAND_5GHZ) {
+                // Country code is mandatory for 5GHz band.
+                Log.e(TAG, "Invalid country code, required for setting up "
+                        + "soft ap in 5GHz");
+                return ERROR_GENERIC;
+            }
+            // Absence of country code is not fatal for 2Ghz & Any band options.
+        } else if (!mWifiNative.setCountryCodeHal(
+                mApInterfaceName, mCountryCode.toUpperCase(Locale.ROOT))) {
+            if (config.apBand == WifiConfiguration.AP_BAND_5GHZ) {
+                // Return an error if failed to set country code when AP is configured for
+                // 5GHz band.
+                Log.e(TAG, "Failed to set country code, required for setting up "
+                        + "soft ap in 5GHz");
+                return ERROR_GENERIC;
+            }
+            // Failure to set country code is not fatal for 2Ghz & Any band options.
+        }
 
         // Make a copy of configuration for updating AP band and channel.
         WifiConfiguration localConfig = new WifiConfiguration(config);
@@ -245,18 +269,6 @@ public class SoftApManager implements ActiveModeManager {
             return result;
         }
 
-        // Setup country code if it is provided.
-        if (mCountryCode != null) {
-            // Country code is mandatory for 5GHz band, return an error if failed to set
-            // country code when AP is configured for 5GHz band.
-            if (!mWifiNative.setCountryCodeHal(
-                    mApInterfaceName, mCountryCode.toUpperCase(Locale.ROOT))
-                    && config.apBand == WifiConfiguration.AP_BAND_5GHZ) {
-                Log.e(TAG, "Failed to set country code, required for setting up "
-                        + "soft ap in 5GHz");
-                return ERROR_GENERIC;
-            }
-        }
         if (localConfig.hiddenSSID) {
             Log.d(TAG, "SoftAP is a hidden network");
         }
@@ -502,6 +514,9 @@ public class SoftApManager implements ActiveModeManager {
                 if (mSettingObserver != null) {
                     mSettingObserver.register();
                 }
+                
+                mSarManager.setSapWifiState(WifiManager.WIFI_AP_STATE_ENABLED);
+
                 Log.d(TAG, "Resetting num stations on start");
                 mNumAssociatedStations = 0;
                 scheduleTimeoutMessage();
@@ -523,6 +538,8 @@ public class SoftApManager implements ActiveModeManager {
                 mWifiMetrics.addSoftApUpChangedEvent(false, mMode);
                 updateApState(WifiManager.WIFI_AP_STATE_DISABLED,
                         WifiManager.WIFI_AP_STATE_DISABLING, 0);
+
+                mSarManager.setSapWifiState(WifiManager.WIFI_AP_STATE_DISABLED);
                 mApInterfaceName = null;
                 mIfaceIsUp = false;
                 mStateMachine.quitNow();
