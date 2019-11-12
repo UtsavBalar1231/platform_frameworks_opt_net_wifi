@@ -167,13 +167,13 @@ public class WifiNetworkSelector {
             return false;
         }
 
-        if (wifiInfo.is24GHz()) {
+        //if (wifiInfo.is24GHz()) {
             // 2.4GHz networks is not qualified whenever 5GHz is available
-            if (is5GHzNetworkAvailable(scanDetails)) {
-                localLog("Current network is 2.4GHz. 5GHz networks available.");
-                return false;
-            }
-        }
+        //    if (is5GHzNetworkAvailable(scanDetails)) {
+        //        localLog("Current network is 2.4GHz. 5GHz networks available.");
+        //        return false;
+        //    }
+        //}
         if (!hasQualifiedRssi) {
             localLog("Current network RSSI[" + currentRssi + "]-acceptable but not qualified.");
             return false;
