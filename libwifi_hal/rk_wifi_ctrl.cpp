@@ -52,6 +52,7 @@ static wifi_device supported_wifi_devices[] = {
 	{"RTL8723BU",	"0bda:b720"},
 	{"RTL8723BS",	"024c:b723"},
 	{"RTL8822BS",	"024c:b822"},
+	{"RTL8822CS",	"024c:c822"},
 	{"RTL8723CS",	"024c:b703"},
 	{"RTL8723DS",	"024c:d723"},
 	{"RTL8188FU",	"0bda:f179"},
@@ -148,7 +149,7 @@ int check_wifi_chip_type_string(char *type)
 			PLOG(DEBUG) << "PCIE WIFI identify sucess";
 		else {
 			PLOG(DEBUG) << "maybe there is no usb wifi or sdio or pcie wifi,set default wifi module Brocom APXXX";
-			strcpy(recoginze_wifi_chip, "APXXX");
+			strcpy(recoginze_wifi_chip, "RTL8822CS");
 			identify_sucess = 1 ;
 		}
 	}
